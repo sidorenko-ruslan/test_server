@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"io"
+	"fmt"
 	"strings"
 	"bytes"
 )
@@ -88,6 +89,7 @@ func handleDeleteQuery(w *http.ResponseWriter, r *http.Request) {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	if path := strings.Replace(r.URL.Path,"/","",-1); path == "users" {
+		fmt.Println("METHOD: " + r.Method + "\nURL: " + r.URL.RequestURI() + "\n")
 		switch r.Method {
 		case "GET":
 			handleGetQuery(&w,r)
@@ -107,6 +109,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 	}
+	fmt.Println("server is running\n")
 	http.HandleFunc("/", handler)
 	http.ListenAndServe(":8080",nil)
+
 }
