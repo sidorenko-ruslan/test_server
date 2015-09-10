@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"io"
 	"strings"
+	"bytes"
 )
 
 var (
@@ -19,36 +20,36 @@ const (
 	UpdateUserQuery string = "UPDATE users SET first_name = $1, last_name = $2, patronymic = $3 WHERE id=$4"
 	DeleteUserQuery string = "DELETE FROM users WHERE id=$1"
 	SelectUsersQuery string = "SELECT first_name, last_name, patronymic FROM users"
-	SelectSingleUserQuery string = "SELECT first_name, last_name, patronymic FROM users WHERE id=$1"
 )
 
 func handleGetQuery(w *http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	var rows *sql.Rows
 	if len(id) > 0 {
-		rows,err = db.Query(SelectSingleUserQuery,id)
+		rows,err = db.Query(SelectUsersQuery + " WHERE id=$1",id)
 	} else {
 		rows,err = db.Query(SelectUsersQuery)
 	}
+	defer rows.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer rows.Close()
-	var response string 
+	var firstName string
+	var lastName string
+	var patronymic string
+
+	var responseBuffer bytes.Buffer
 	for rows.Next() {
-		var firstName string
-		var lastName string
-		var patronymic string
 		err := rows.Scan(&firstName,&lastName,&patronymic)
 		if err != nil {
 			log.Fatal(err)
 		}
-		response += "user {first name = '" + firstName + "', last name = '" + lastName + "', patronymic = '" + patronymic + "'}\n"
+		responseBuffer.WriteString("user {first name = '" + firstName + "', last name = '" + lastName + "', patronymic = '" + patronymic + "'}\n")
 	}
-	if len(response) == 0 {
-		response = "no users\n"
+	if responseBuffer.Len() == 0 {
+		responseBuffer.WriteString("no users\n")
 	} 
-	io.WriteString(*w, response)
+	io.WriteString(*w, responseBuffer.String())
 }
 
 func handlePostQuery(w *http.ResponseWriter, r *http.Request) {
